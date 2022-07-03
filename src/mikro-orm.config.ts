@@ -1,5 +1,6 @@
 require("dotenv").config();
 import { Post } from "./entities/Post";
+import { User } from "./entities/User";
 import {
   __prod__,
   __db_type__,
@@ -15,7 +16,7 @@ export default {
     path: path.join(__dirname, "./migrations"),
     pattern: /^[\w-]+\d+\.[tj]s$/,
   },
-  entities: [Post],
+  entities: [Post, User],
   type: __db_type__,
   dbName: __db_name__,
   user: __db_user__,
