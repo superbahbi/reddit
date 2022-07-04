@@ -6,6 +6,7 @@ import {
   InputType,
   Mutation,
   ObjectType,
+  Query,
   Resolver,
 } from "type-graphql";
 import { User } from "../entities/User";
@@ -37,6 +38,18 @@ class UserResponse {
 }
 @Resolver()
 export class UserResolver {
+  @Query(() => User, { nullable: true })
+  async me(@Ctx() { req, em }: OrmEntityManagerContext) {
+    //@ts-ignore
+    const userId = req.session.userId;
+
+    // You are not logged in
+    if (!userId) {
+      return null;
+    }
+    const user = await em.findOne(User, { id: userId });
+    return user;
+  }
   // Register a new user
   // @params username: string, password: string
   // @params username: string, password: string
@@ -44,7 +57,7 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async register(
     @Arg("options", () => UsernamePasswordInput) options: UsernamePasswordInput,
-    @Ctx() { em }: OrmEntityManagerContext
+    @Ctx() { em, req }: OrmEntityManagerContext
   ): Promise<UserResponse> {
     if (options.username.length <= 2) {
       return {
@@ -86,12 +99,14 @@ export class UserResolver {
         };
       }
     }
+    //@ts-ignore
+    req.session.userId = user.id;
     return { user };
   }
   @Mutation(() => UserResponse)
   async login(
     @Arg("options", () => UsernamePasswordInput) options: UsernamePasswordInput,
-    @Ctx() { em }: OrmEntityManagerContext
+    @Ctx() { em, req }: OrmEntityManagerContext
   ): Promise<UserResponse> {
     const user = await em.findOne(User, {
       username: options.username.toLowerCase(),
@@ -117,7 +132,8 @@ export class UserResolver {
         ],
       };
     }
-
+    //@ts-ignore
+    req.session.userId = user.id;
     return { user };
   }
 }

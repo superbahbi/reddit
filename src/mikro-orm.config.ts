@@ -1,4 +1,3 @@
-require("dotenv").config();
 import { Post } from "./entities/Post";
 import { User } from "./entities/User";
 import {
