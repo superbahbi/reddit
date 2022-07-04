@@ -13,7 +13,7 @@ import { UserResolver } from "./resolvers/user";
 import * as redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
-
+import cors from "cors";
 const main = async () => {
   const orm = await MikroORM.init(mikroConfig);
   await orm.getMigrator().up();
@@ -28,6 +28,12 @@ const main = async () => {
   });
   await redisClient.connect();
 
+  app.use(
+    cors({
+      origin: ["https://studio.apollographql.com", "http://localhost:3000"],
+      credentials: true,
+    })
+  );
   app.use(
     session({
       name: "qid",
@@ -60,9 +66,12 @@ const main = async () => {
   });
 
   await apolloServer.start();
-  apolloServer.applyMiddleware({ app });
-  app.listen(3000, () => {
-    console.log("Server listening on port 3000");
+  apolloServer.applyMiddleware({
+    app,
+    cors: false,
+  });
+  app.listen(4000, () => {
+    console.log("Server listening on port 4000");
   });
 };
 main().catch((err) => {
