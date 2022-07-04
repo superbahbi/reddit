@@ -1,14 +1,11 @@
 mutation Login($options: UsernamePasswordInput!) {
   login(options: $options) {
-    user {
-      id
-      createdAt
-      updatedAt
-      username
-    }
     errors {
       field
       message
+    }
+    user {
+      ...RegularUser
     }
   }
 }

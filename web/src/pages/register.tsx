@@ -13,6 +13,7 @@ import { InputField } from "../components/InputField";
 import { useRegisterMutation } from "../generated/graphql";
 import { toErrorMap } from "../utils/toErrorMap";
 import { useRouter } from "next/router";
+
 interface registerProps {}
 
 const Register: React.FC<registerProps> = ({}) => {
@@ -25,8 +26,9 @@ const Register: React.FC<registerProps> = ({}) => {
         onSubmit={async (values, { setErrors }) => {
           const response = await register(values);
           if (response.data?.register.errors) {
-            setErrors(toErrorMap(response.data?.register.errors));
+            setErrors(toErrorMap(response.data.register.errors));
           } else if (response.data?.register.user) {
+            // worked
             router.push("/");
           }
         }}
@@ -52,7 +54,7 @@ const Register: React.FC<registerProps> = ({}) => {
               isLoading={isSubmitting}
               variantColor="teal"
             >
-              Register
+              register
             </Button>
           </Form>
         )}
