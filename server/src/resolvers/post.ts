@@ -1,11 +1,12 @@
 import { OrmEntityManagerContext } from "../types";
 import { Arg, Ctx, Int, Mutation, Query, Resolver } from "type-graphql";
 import { Post } from "../entities/Post";
+
 @Resolver()
 export class PostResolver {
   // Get all posts
   @Query(() => [Post])
-  posts(@Ctx() { em }: OrmEntityManagerContext): Promise<Post[]> {
+  async posts(@Ctx() { em }: OrmEntityManagerContext): Promise<Post[]> {
     return em.find(Post, {});
   }
   // Get post by ID
