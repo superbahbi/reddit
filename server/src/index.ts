@@ -2,7 +2,12 @@ require("dotenv").config({ path: `.env.development` });
 import { OrmEntityManagerContext } from "./types";
 import "reflect-metadata";
 import { MikroORM } from "@mikro-orm/core";
-import { __prod__, __redis_url__, __redis_pass__ } from "./constants";
+import {
+  __prod__,
+  __redis_url__,
+  __redis_pass__,
+  COOKIE_NAME,
+} from "./constants";
 import mikroConfig from "./mikro-orm.config";
 import express from "express";
 import { ApolloServer } from "apollo-server-express";
@@ -14,6 +19,7 @@ import * as redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
 import cors from "cors";
+
 const main = async () => {
   const orm = await MikroORM.init(mikroConfig);
   await orm.getMigrator().up();
@@ -36,7 +42,7 @@ const main = async () => {
   );
   app.use(
     session({
-      name: "qid",
+      name: COOKIE_NAME,
       store: new RedisStore({
         client: redisClient as any,
         disableTouch: true,

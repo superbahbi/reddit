@@ -1,3 +1,4 @@
+require("dotenv").config({ path: `.env.development` });
 import { Post } from "./entities/Post";
 import { User } from "./entities/User";
 import {

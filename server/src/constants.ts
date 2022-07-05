@@ -1,4 +1,5 @@
 export const __prod__ = process.env.NODE_ENV === "production";
+export const COOKIE_NAME = "qid";
 export const __db_uri__ = process.env.DB_URI;
 export const __db_type__ = process.env.DB_TYPE;
 export const __db_name__ = process.env.DB_NAME;
