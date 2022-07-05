@@ -12,7 +12,7 @@ const Index = () => {
       {!data ? (
         <div>Loading..</div>
       ) : (
-        data.posts.map((post) => <div>{post.title}</div>)
+        data.posts.map((post, index) => <div key={index}>{post.title}</div>)
       )}
     </>
   );
