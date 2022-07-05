@@ -2,12 +2,7 @@ require("dotenv").config({ path: `.env.development` });
 import { OrmEntityManagerContext } from "./types";
 import "reflect-metadata";
 import { MikroORM } from "@mikro-orm/core";
-import {
-  __prod__,
-  __redis_url__,
-  __redis_pass__,
-  COOKIE_NAME,
-} from "./constants";
+import { __prod__, __redis_uri__, COOKIE_NAME } from "./constants";
 import mikroConfig from "./mikro-orm.config";
 import express from "express";
 import { ApolloServer } from "apollo-server-express";
@@ -15,7 +10,7 @@ import { buildSchema } from "type-graphql";
 import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
-import * as redis from "redis";
+import Redis from "ioredis";
 import session from "express-session";
 import connectRedis from "connect-redis";
 import cors from "cors";
@@ -27,12 +22,13 @@ const main = async () => {
   const app = express();
 
   const RedisStore = connectRedis(session);
-  const redisClient = redis.createClient({
-    url: __redis_url__,
-    password: __redis_pass__,
-    legacyMode: true,
-  });
-  await redisClient.connect();
+  const redis = new Redis(__redis_uri__ as string);
+  // const redisClient = Redis.createClient({
+  //   url: __redis_url__,
+  //   password: __redis_pass__,
+  //   legacyMode: true,
+  // });
+  // await redisClient.connect();
 
   app.use(
     cors({
@@ -44,7 +40,7 @@ const main = async () => {
     session({
       name: COOKIE_NAME,
       store: new RedisStore({
-        client: redisClient as any,
+        client: redis as any,
         disableTouch: true,
       }),
       cookie: {
@@ -68,6 +64,7 @@ const main = async () => {
       em: orm.em,
       req,
       res,
+      redis,
     }),
   });
 
