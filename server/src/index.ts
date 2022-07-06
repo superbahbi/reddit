@@ -16,22 +16,37 @@ import { DataSource } from "typeorm";
 import { Post } from "./entities/Post";
 import { User } from "./entities/User";
 import path from "path";
-
+console.log(path.join(__dirname, "./migrations/*"));
 const main = async () => {
   const conn = new DataSource({
     type: "postgres",
     url: "postgresql://postgres:v33219@localhost:5432/reddit2",
-    // synchronize: true,
+    synchronize: false,
     logging: true,
     migrations: [path.join(__dirname, "./migrations/*")],
     entities: [Post, User],
     subscribers: [],
   });
-  try {
-    await conn.initialize();
-  } catch (error) {
-    console.log(`TypeORM STARTING ERROR:${error}`);
-  }
+  //a
+  await conn
+    .initialize()
+    .then(async () => {
+      console.log("Data Source has been initialized!");
+    })
+    .catch((err) => {
+      console.error("Error during Data Source initialization", err);
+    });
+  await conn
+    .runMigrations()
+    .then(() => {
+      console.log("runMigrations has been initialized!");
+    })
+    .catch((err) => {
+      console.error("Error during runMigrations initialization", err);
+    });
+  //test connection
+
+  // await Post.delete({});
   const app = express();
 
   const RedisStore = connectRedis(session);
