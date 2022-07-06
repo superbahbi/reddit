@@ -28,11 +28,6 @@ const main = async () => {
     subscribers: [],
   });
   try {
-    try {
-      await conn.runMigrations();
-    } catch (error) {
-      console.log(`MIGRATION ERROR:${error}`);
-    }
     await conn.initialize();
   } catch (error) {
     console.log(`TypeORM STARTING ERROR:${error}`);
