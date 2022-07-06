@@ -45,23 +45,26 @@ export class PostResolver {
     @Arg("limit", () => Int) limit: number,
     @Arg("cursor", () => String, { nullable: true }) cursor: string | null
   ): Promise<PaginatedPosts> {
+    // 20 -> 21
     const realLimit = Math.min(50, limit);
-    const realLimitPlusOne = realLimit + 1;
+    const reaLimitPlusOne = realLimit + 1;
     const qb = getConnection()
       .getRepository(Post)
       .createQueryBuilder("p")
       .orderBy('"createdAt"', "DESC")
-      .take(realLimitPlusOne);
+      .take(reaLimitPlusOne);
 
     if (cursor) {
       qb.where('"createdAt" < :cursor', {
         cursor: new Date(parseInt(cursor)),
       });
     }
+
     const posts = await qb.getMany();
+
     return {
       posts: posts.slice(0, realLimit),
-      hasMore: posts.length === realLimitPlusOne,
+      hasMore: posts.length === reaLimitPlusOne,
     };
   }
 
