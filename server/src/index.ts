@@ -1,9 +1,7 @@
 require("dotenv").config({ path: `.env.development` });
 import { OrmEntityManagerContext } from "./types";
 import "reflect-metadata";
-import { MikroORM } from "@mikro-orm/core";
 import { __prod__, __redis_uri__, COOKIE_NAME } from "./constants";
-import mikroConfig from "./mikro-orm.config";
 import express from "express";
 import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
@@ -14,11 +12,31 @@ import Redis from "ioredis";
 import session from "express-session";
 import connectRedis from "connect-redis";
 import cors from "cors";
+import { DataSource } from "typeorm";
+import { Post } from "./entities/Post";
+import { User } from "./entities/User";
+import path from "path";
 
 const main = async () => {
-  const orm = await MikroORM.init(mikroConfig);
-  await orm.getMigrator().up();
-
+  const conn = new DataSource({
+    type: "postgres",
+    url: "postgresql://postgres:v33219@localhost:5432/reddit2",
+    // synchronize: true,
+    logging: true,
+    migrations: [path.join(__dirname, "./migrations/*")],
+    entities: [Post, User],
+    subscribers: [],
+  });
+  try {
+    try {
+      await conn.runMigrations();
+    } catch (error) {
+      console.log(`MIGRATION ERROR:${error}`);
+    }
+    await conn.initialize();
+  } catch (error) {
+    console.log(`TypeORM STARTING ERROR:${error}`);
+  }
   const app = express();
 
   const RedisStore = connectRedis(session);
@@ -61,7 +79,7 @@ const main = async () => {
       validate: false,
     }),
     context: ({ req, res }): OrmEntityManagerContext => ({
-      em: orm.em,
+      conn,
       req,
       res,
       redis,
