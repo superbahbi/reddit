@@ -1,20 +1,21 @@
-import { validateRegister } from "./../utils/validateRegister";
-import { COOKIE_NAME, FORGOT_PASSWORD_PREFIX } from "./../constants";
-import { OrmEntityManagerContext } from "../types";
 import {
-  Arg,
-  Ctx,
-  Field,
+  Resolver,
   Mutation,
+  Arg,
+  Field,
+  Ctx,
   ObjectType,
   Query,
-  Resolver,
 } from "type-graphql";
+import { MyContext } from "../types";
 import { User } from "../entities/User";
 import argon2 from "argon2";
-import { UsernamePasswordInput } from "../utils/UsernamePasswordInput";
+import { COOKIE_NAME, FORGET_PASSWORD_PREFIX } from "../constants";
+import { UsernamePasswordInput } from "./UsernamePasswordInput";
+import { validateRegister } from "../utils/validateRegister";
 import { sendEmail } from "../utils/sendEmail";
 import { v4 } from "uuid";
+import { getConnection } from "typeorm";
 
 @ObjectType()
 class FieldError {
@@ -23,38 +24,51 @@ class FieldError {
   @Field()
   message: string;
 }
+
 @ObjectType()
 class UserResponse {
   @Field(() => [FieldError], { nullable: true })
   errors?: FieldError[];
+
   @Field(() => User, { nullable: true })
   user?: User;
 }
+
 @Resolver()
 export class UserResolver {
   @Mutation(() => UserResponse)
   async changePassword(
     @Arg("token") token: string,
     @Arg("newPassword") newPassword: string,
-    @Ctx() { redis, req }: OrmEntityManagerContext
+    @Ctx() { redis, req }: MyContext
   ): Promise<UserResponse> {
     if (newPassword.length <= 2) {
       return {
         errors: [
           {
             field: "newPassword",
-            message: "password must be at least 3 characters",
+            message: "length must be greater than 2",
           },
         ],
       };
     }
-    const key = FORGOT_PASSWORD_PREFIX + token;
+
+    const key = FORGET_PASSWORD_PREFIX + token;
     const userId = await redis.get(key);
     if (!userId) {
-      return { errors: [{ field: "token", message: "token expired" }] };
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "token expired",
+          },
+        ],
+      };
     }
+
     const userIdNum = parseInt(userId);
-    const user = await User.findOneBy({ id: userIdNum });
+    const user = await User.findOne(userIdNum);
+
     if (!user) {
       return {
         errors: [
@@ -68,82 +82,86 @@ export class UserResolver {
 
     await User.update(
       { id: userIdNum },
-      { password: await argon2.hash(newPassword) }
+      {
+        password: await argon2.hash(newPassword),
+      }
     );
+
     await redis.del(key);
 
-    //@ts-ignore
+    // log in user after change password
     req.session.userId = user.id;
+
     return { user };
   }
 
   @Mutation(() => Boolean)
   async forgotPassword(
     @Arg("email") email: string,
-    @Ctx() { redis }: OrmEntityManagerContext
+    @Ctx() { redis }: MyContext
   ) {
-    const user = await User.findOneBy({ email: email });
+    const user = await User.findOne({ where: { email } });
     if (!user) {
+      // the email is not in the db
       return true;
     }
-    // const token = (await user.generatePasswordResetToken()) as string;
+
     const token = v4();
+
     await redis.set(
-      FORGOT_PASSWORD_PREFIX + token,
+      FORGET_PASSWORD_PREFIX + token,
       user.id,
-      "EX",
-      1000 * 60 * 60 * 24
-    );
-    sendEmail(
+      "ex",
+      1000 * 60 * 60 * 24 * 3
+    ); // 3 days
+
+    await sendEmail(
       email,
-      `<a href="http://localhost:3000/change-password/${token}">Change Password</a>`
+      `<a href="http://localhost:3000/change-password/${token}">reset password</a>`
     );
 
     return true;
   }
 
   @Query(() => User, { nullable: true })
-  me(@Ctx() { req }: OrmEntityManagerContext) {
-    //@ts-ignore
-    const userId = req.session.userId;
-
-    // You are not logged in
-    if (!userId) {
+  me(@Ctx() { req }: MyContext) {
+    // you are not logged in
+    if (!req.session.userId) {
       return null;
     }
-    return User.findOneBy({ id: userId });
+
+    return User.findOne(req.session.userId);
   }
-  // Register a new user
-  // @params username: string, password: string
-  // @params username: string, password: string
-  // @returns User
+
   @Mutation(() => UserResponse)
   async register(
-    @Arg("options", () => UsernamePasswordInput) options: UsernamePasswordInput,
-    @Ctx() { req, conn }: OrmEntityManagerContext
+    @Arg("options") options: UsernamePasswordInput,
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
     const errors = validateRegister(options);
     if (errors) {
       return { errors };
     }
+
     const hashedPassword = await argon2.hash(options.password);
     let user;
     try {
-      const result = await conn
+      // User.create({}).save()
+      const result = await getConnection()
         .createQueryBuilder()
         .insert()
         .into(User)
         .values({
           username: options.username,
-          password: hashedPassword,
           email: options.email,
+          password: hashedPassword,
         })
         .returning("*")
         .execute();
       user = result.raw[0];
     } catch (err) {
-      // dupe username error
-      //err.detail.includes("already exists")
+      //|| err.detail.includes("already exists")) {
+      // duplicate username error
       if (err.code === "23505") {
         return {
           errors: [
@@ -155,27 +173,32 @@ export class UserResolver {
         };
       }
     }
-    //@ts-ignore
+
+    // store user id session
+    // this will set a cookie on the user
+    // keep them logged in
     req.session.userId = user.id;
+
     return { user };
   }
+
   @Mutation(() => UserResponse)
   async login(
     @Arg("usernameOrEmail") usernameOrEmail: string,
     @Arg("password") password: string,
-    @Ctx() { req }: OrmEntityManagerContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
-    const user = await User.findOneBy(
+    const user = await User.findOne(
       usernameOrEmail.includes("@")
-        ? { email: usernameOrEmail }
-        : { username: usernameOrEmail }
+        ? { where: { email: usernameOrEmail } }
+        : { where: { username: usernameOrEmail } }
     );
     if (!user) {
       return {
         errors: [
           {
             field: "usernameOrEmail",
-            message: "username not found",
+            message: "that username doesn't exist",
           },
         ],
       };
@@ -191,19 +214,25 @@ export class UserResolver {
         ],
       };
     }
-    //@ts-ignore
+
     req.session.userId = user.id;
-    return { user };
+
+    return {
+      user,
+    };
   }
+
   @Mutation(() => Boolean)
-  logout(@Ctx() { req, res }: OrmEntityManagerContext) {
+  logout(@Ctx() { req, res }: MyContext) {
     return new Promise((resolve) =>
       req.session.destroy((err) => {
         res.clearCookie(COOKIE_NAME);
         if (err) {
+          console.log(err);
           resolve(false);
           return;
         }
+
         resolve(true);
       })
     );

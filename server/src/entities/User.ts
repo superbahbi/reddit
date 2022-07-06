@@ -1,10 +1,10 @@
-import { Field, ObjectType } from "type-graphql";
+import { ObjectType, Field } from "type-graphql";
 import {
   Entity,
-  Column,
-  CreateDateColumn,
   PrimaryGeneratedColumn,
+  CreateDateColumn,
   UpdateDateColumn,
+  Column,
   BaseEntity,
   OneToMany,
 } from "typeorm";
@@ -21,6 +21,7 @@ export class User extends BaseEntity {
   @Column({ unique: true })
   username!: string;
 
+  @Field()
   @Column({ unique: true })
   email!: string;
 

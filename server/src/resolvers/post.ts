@@ -1,77 +1,93 @@
-import { isAuth } from "./../middleware/isAuth";
-import { OrmEntityManagerContext } from "./../types";
 import {
-  Arg,
-  Ctx,
-  Field,
-  FieldResolver,
-  InputType,
-  Int,
-  Mutation,
-  Query,
   Resolver,
-  Root,
+  Query,
+  Arg,
+  Mutation,
+  InputType,
+  Field,
+  Ctx,
   UseMiddleware,
+  Int,
+  FieldResolver,
+  Root,
+  ObjectType,
 } from "type-graphql";
 import { Post } from "../entities/Post";
+import { MyContext } from "../types";
+import { isAuth } from "../middleware/isAuth";
+import { getConnection } from "typeorm";
 
 @InputType()
 class PostInput {
-  @Field(() => String)
+  @Field()
   title: string;
-  @Field(() => String)
+  @Field()
   text: string;
+}
+
+@ObjectType()
+class PaginatedPosts {
+  @Field(() => [Post])
+  posts: Post[];
+  @Field(() => Boolean)
+  hasMore: boolean;
 }
 
 @Resolver(Post)
 export class PostResolver {
   @FieldResolver(() => String)
-  textSnippet(@Root() root: Post) {
-    return root.text.slice(0, 50);
+  textSnippet(@Root() post: Post) {
+    return post.text.slice(0, 50);
   }
-  // Get all posts
-  @Query(() => [Post])
-  posts(
+
+  @Query(() => PaginatedPosts)
+  async posts(
     @Arg("limit", () => Int) limit: number,
-    @Arg("cursor", () => String, { nullable: true }) cursor: string,
-    @Ctx() { conn }: OrmEntityManagerContext
-  ): Promise<Post[]> {
+    @Arg("cursor", () => String, { nullable: true }) cursor: string | null
+  ): Promise<PaginatedPosts> {
     const realLimit = Math.min(50, limit);
-    const qb = conn
+    const realLimitPlusOne = realLimit + 1;
+    const qb = getConnection()
       .getRepository(Post)
       .createQueryBuilder("p")
       .orderBy('"createdAt"', "DESC")
-      .take(realLimit);
+      .take(realLimitPlusOne);
+
     if (cursor) {
-      qb.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
+      qb.where('"createdAt" < :cursor', {
+        cursor: new Date(parseInt(cursor)),
+      });
     }
-    return qb.getMany();
+    const posts = await qb.getMany();
+    return {
+      posts: posts.slice(0, realLimit),
+      hasMore: posts.length === realLimitPlusOne,
+    };
   }
-  // Get post by ID
+
   @Query(() => Post, { nullable: true })
-  post(@Arg("id", () => Int) id: number): Promise<Post | null> {
-    return Post.findOneBy({ id });
+  post(@Arg("id") id: number): Promise<Post | undefined> {
+    return Post.findOne(id);
   }
-  // Create post
+
   @Mutation(() => Post)
   @UseMiddleware(isAuth)
   async createPost(
     @Arg("input") input: PostInput,
-    @Ctx() { req }: OrmEntityManagerContext
-  ): Promise<Post | null> {
-    return await Post.create({
+    @Ctx() { req }: MyContext
+  ): Promise<Post> {
+    return Post.create({
       ...input,
-      //@ts-ignore
       creatorId: req.session.userId,
     }).save();
   }
-  // Update post
+
   @Mutation(() => Post, { nullable: true })
   async updatePost(
-    @Arg("id", () => Number) id: number,
+    @Arg("id") id: number,
     @Arg("title", () => String, { nullable: true }) title: string
   ): Promise<Post | null> {
-    const post = await Post.findOneBy({ id });
+    const post = await Post.findOne(id);
     if (!post) {
       return null;
     }
@@ -80,14 +96,10 @@ export class PostResolver {
     }
     return post;
   }
-  // Delete post
+
   @Mutation(() => Boolean)
-  async deletePost(@Arg("id", () => Number) id: number): Promise<Boolean> {
-    try {
-      await Post.delete({ id });
-    } catch {
-      return false;
-    }
+  async deletePost(@Arg("id") id: number): Promise<boolean> {
+    await Post.delete(id);
     return true;
   }
 }
