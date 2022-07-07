@@ -1,3 +1,4 @@
+import { gql } from "graphql-tag";
 import { cacheExchange, Resolver } from "@urql/exchange-graphcache";
 import {
   dedupExchange,
@@ -83,6 +84,34 @@ export const createUrqlClient = (ssrExchange: any) => ({
       },
       updates: {
         Mutation: {
+          vote: (_result, args, cache, info) => {
+            const { postId, value } = args;
+            const data = cache.readFragment(
+              gql`
+                fragment _ on Post {
+                  id
+                  points
+                  voteStatus
+                }
+              `,
+              { id: postId } as any
+            );
+            if (data) {
+              if (data.voteStatus === value) {
+                return;
+              }
+              const newPoints = data.points + value;
+              cache.writeFragment(
+                gql`
+                  fragment _ on Post {
+                    points
+                    voteStatus
+                  }
+                `,
+                { id: postId, points: newPoints, voteStatus: value } as any
+              );
+            }
+          },
           createPost: (_result, args, cache, info) => {
             const allFields = cache.inspectFields("Query");
             const fieldInfos = allFields.filter(
