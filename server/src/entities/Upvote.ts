@@ -1,11 +1,4 @@
-import {
-  BaseEntity,
-  Column,
-  Entity,
-  ManyToMany,
-  ManyToOne,
-  PrimaryColumn,
-} from "typeorm";
+import { BaseEntity, Column, Entity, ManyToOne, PrimaryColumn } from "typeorm";
 import { Post } from "./Post";
 import { User } from "./User";
 
@@ -17,12 +10,12 @@ export class Upvote extends BaseEntity {
   @PrimaryColumn()
   userId: number;
 
-  @ManyToMany(() => User, (user) => user.upvote)
+  @ManyToOne(() => User, (user) => user.upvotes)
   user: User;
 
   @PrimaryColumn()
   postId: number;
 
-  @ManyToOne(() => Post, (post) => post.upvote)
+  @ManyToOne(() => Post, (post) => post.upvotes)
   post: Post;
 }

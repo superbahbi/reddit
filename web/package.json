@@ -1,5 +1,5 @@
 {
-  "name": "reddit",
+  "name": "with-chakra-ui",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,21 +10,20 @@
   },
   "dependencies": {
     "@chakra-ui/core": "^0.5.2",
-    "@chakra-ui/react": "2.0.0-next.3",
     "@emotion/core": "^10.0.27",
     "@emotion/styled": "^10.0.27",
     "@urql/exchange-graphcache": "^3.0.2",
+    "dotenv": "^16.0.1",
     "emotion-theming": "^10.0.27",
     "formik": "^2.1.5",
     "graphql": "^15.3.0",
-    "graphql-tag": "^2.12.6",
-    "isomorphic-unfetch": "^3.1.0",
+    "graphql-tag": "^2.11.0",
+    "isomorphic-unfetch": "^3.0.0",
     "next": "^9.1.7",
-    "next-urql": "^3.3.3",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-is": "^18.2.0",
-    "react-ssr-prepass": "^1.5.0",
+    "next-urql": "^1.1.0",
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0",
+    "react-is": "^16.13.1",
     "urql": "^1.10.0"
   },
   "devDependencies": {

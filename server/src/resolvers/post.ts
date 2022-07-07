@@ -1,22 +1,22 @@
 import {
-  Resolver,
-  Query,
   Arg,
-  Mutation,
-  InputType,
-  Field,
   Ctx,
-  UseMiddleware,
-  Int,
+  Field,
   FieldResolver,
-  Root,
+  InputType,
+  Int,
+  Mutation,
   ObjectType,
+  Query,
+  Resolver,
+  Root,
+  UseMiddleware,
 } from "type-graphql";
-import { Post } from "../entities/Post";
-import { MyContext } from "../types";
-import { isAuth } from "../middleware/isAuth";
 import { getConnection } from "typeorm";
+import { Post } from "../entities/Post";
 import { Upvote } from "../entities/Upvote";
+import { isAuth } from "../middleware/isAuth";
+import { MyContext } from "../types";
 
 @InputType()
 class PostInput {
@@ -115,6 +115,7 @@ export class PostResolver {
     if (req.session.userId) {
       replacements.push(req.session.userId);
     }
+
     let cursorIdx = 3;
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
@@ -131,7 +132,6 @@ export class PostResolver {
       'createdAt', u."createdAt",
       'updatedAt', u."updatedAt"
       ) creator,
-
     ${
       req.session.userId
         ? '(select value from upvote where "userId" = $2 and "postId" = p.id) "voteStatus"'
@@ -153,8 +153,8 @@ export class PostResolver {
   }
 
   @Query(() => Post, { nullable: true })
-  post(@Arg("id") id: number): Promise<Post | undefined> {
-    return Post.findOne(id);
+  post(@Arg("id", () => Int) id: number): Promise<Post | undefined> {
+    return Post.findOne(id, { relations: ["creator"] });
   }
 
   @Mutation(() => Post)
