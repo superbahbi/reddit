@@ -34,6 +34,7 @@ const main = async () => {
 
   const RedisStore = connectRedis(session);
   const redis = new Redis(process.env.REDIS_URL);
+  // console.log(redis);
   app.use(
     cors({
       origin: ["http://localhost:3000", "https://studio.apollographql.com"],
@@ -50,7 +51,7 @@ const main = async () => {
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
         httpOnly: true,
-        sameSite: "none", // csrf
+        sameSite: "lax", // csrf
         secure: __prod__, // cookie only works in https
       },
       saveUninitialized: false,
