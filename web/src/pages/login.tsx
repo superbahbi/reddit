@@ -1,13 +1,13 @@
-import { Box, Button, Flex, Link } from "@chakra-ui/core";
-import { Form, Formik } from "formik";
-import { withUrqlClient } from "next-urql";
-import { useRouter } from "next/router";
 import React from "react";
-import { InputField } from "../components/InputField";
+import { Formik, Form } from "formik";
+import { Box, Button, Link, Flex } from "@chakra-ui/core";
 import { Wrapper } from "../components/Wrapper";
+import { InputField } from "../components/InputField";
 import { useLoginMutation } from "../generated/graphql";
-import { createUrqlClient } from "../utils/createUrqlClient";
 import { toErrorMap } from "../utils/toErrorMap";
+import { useRouter } from "next/router";
+import { withUrqlClient } from "next-urql";
+import { createUrqlClient } from "../utils/createUrqlClient";
 import NextLink from "next/link";
 
 const Login: React.FC<{}> = ({}) => {
@@ -25,6 +25,7 @@ const Login: React.FC<{}> = ({}) => {
             if (typeof router.query.next === "string") {
               router.push(router.query.next);
             } else {
+              // worked
               router.push("/");
             }
           }
@@ -56,7 +57,7 @@ const Login: React.FC<{}> = ({}) => {
               isLoading={isSubmitting}
               variantColor="teal"
             >
-              login
+              Login
             </Button>
           </Form>
         )}

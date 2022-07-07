@@ -44,7 +44,6 @@ export type Post = {
   text: Scalars['String'];
   points: Scalars['Float'];
   creatorId: Scalars['Float'];
-  creator: User;
   createdAt: Scalars['String'];
   updatedAt: Scalars['String'];
   textSnippet: Scalars['String'];
@@ -176,7 +175,7 @@ export type CreatePostMutation = (
   { __typename?: 'Mutation' }
   & { createPost: (
     { __typename?: 'Post' }
-    & Pick<Post, 'id' | 'title' | 'text' | 'points' | 'creatorId' | 'createdAt' | 'updatedAt'>
+    & Pick<Post, 'id' | 'createdAt' | 'updatedAt' | 'title' | 'text' | 'points' | 'creatorId'>
   ) }
 );
 
@@ -238,6 +237,7 @@ export type MeQuery = (
 
 export type PostsQueryVariables = Exact<{
   limit: Scalars['Int'];
+  cursor?: Maybe<Scalars['String']>;
 }>;
 
 
@@ -248,11 +248,7 @@ export type PostsQuery = (
     & Pick<PaginatedPosts, 'hasMore'>
     & { posts: Array<(
       { __typename?: 'Post' }
-      & Pick<Post, 'id' | 'title' | 'text' | 'points' | 'creatorId' | 'createdAt' | 'updatedAt' | 'textSnippet'>
-      & { creator: (
-        { __typename?: 'User' }
-        & Pick<User, 'id' | 'username' | 'email' | 'createdAt'>
-      ) }
+      & Pick<Post, 'id' | 'createdAt' | 'updatedAt' | 'title' | 'textSnippet'>
     )> }
   ) }
 );
@@ -295,12 +291,12 @@ export const CreatePostDocument = gql`
     mutation CreatePost($input: PostInput!) {
   createPost(input: $input) {
     id
+    createdAt
+    updatedAt
     title
     text
     points
     creatorId
-    createdAt
-    updatedAt
   }
 }
     `;
@@ -360,23 +356,14 @@ export function useMeQuery(options: Omit<Urql.UseQueryArgs<MeQueryVariables>, 'q
   return Urql.useQuery<MeQuery>({ query: MeDocument, ...options });
 };
 export const PostsDocument = gql`
-    query Posts($limit: Int!) {
-  posts(limit: $limit) {
+    query Posts($limit: Int!, $cursor: String) {
+  posts(limit: $limit, cursor: $cursor) {
     hasMore
     posts {
       id
-      title
-      text
-      points
-      creatorId
-      creator {
-        id
-        username
-        email
-        createdAt
-      }
       createdAt
       updatedAt
+      title
       textSnippet
     }
   }
