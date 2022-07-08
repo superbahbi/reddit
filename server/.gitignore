@@ -1,3 +1,6 @@
 dist
 node_modules
 .env
+.env.local
+.env.production
+ormconfig.json

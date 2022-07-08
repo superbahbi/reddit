@@ -1,4 +1,3 @@
-import { User } from "../entities/User";
 import {
   Arg,
   Ctx,
@@ -16,6 +15,7 @@ import {
 import { getConnection } from "typeorm";
 import { Post } from "../entities/Post";
 import { Upvote } from "../entities/Upvote";
+import { User } from "../entities/User";
 import { isAuth } from "../middleware/isAuth";
 import { MyContext } from "../types";
 
@@ -122,8 +122,7 @@ export class PostResolver {
   @Query(() => PaginatedPosts)
   async posts(
     @Arg("limit", () => Int) limit: number,
-    @Arg("cursor", () => String, { nullable: true }) cursor: string | null,
-    @Ctx() { req }: MyContext
+    @Arg("cursor", () => String, { nullable: true }) cursor: string | null
   ): Promise<PaginatedPosts> {
     // 20 -> 21
     const realLimit = Math.min(50, limit);
